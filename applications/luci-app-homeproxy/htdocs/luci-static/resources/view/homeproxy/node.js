@@ -1021,6 +1021,7 @@ function renderNodeSettings(section, data, features, main_node, routing_mode) {
 		_('The path to the server certificate, in PEM format.'));
 	o.value('/etc/homeproxy/certs/client_ca.pem');
 	o.depends('tls_self_sign', '1');
+	o.validate = L.bind(hp.validateCertificatePath, this);
 	o.rmempty = false;
 	o.modalonly = true;
 
@@ -1049,8 +1050,18 @@ function renderNodeSettings(section, data, features, main_node, routing_mode) {
 		o.default = o.disabled;
 		o.modalonly = true;
 
-		o = s.option(form.DynamicList, 'tls_ech_config', _('ECH config'));
+		o = s.option(form.Value, 'tls_ech_config_path', _('ECH config path'),
+			_('The path to the ECH config, in PEM format. If empty, load from DNS will be attempted.'));
+		o.value('/etc/homeproxy/certs/client_ech_conf.pem');
 		o.depends('tls_ech', '1');
+		o.modalonly = true;
+
+		o = s.option(form.Button, '_upload_ech_config', _('Upload ECH config'),
+			_('<strong>Save your configuration before uploading files!</strong>'));
+		o.inputstyle = 'action';
+		o.inputtitle = _('Upload...');
+		o.depends({'tls_ech': '1', 'tls_ech_config_path': '/etc/homeproxy/certs/client_ech_conf.pem'});
+		o.onclick = L.bind(hp.uploadCertificate, this, _('ECH config'), 'client_ech_conf');
 		o.modalonly = true;
 	}
 
@@ -1148,7 +1159,7 @@ return view.extend({
 	},
 
 	render: function(data) {
-		var m, s, o, ss, so;
+		let m, s, o, ss, so;
 		var main_node = uci.get(data[0], 'config', 'main_node');
 		var routing_mode = uci.get(data[0], 'config', 'routing_mode');
 		var features = data[1];
